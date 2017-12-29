@@ -44,7 +44,9 @@ import org.jetbrains.kotlin.idea.util.ProjectRootsUtil
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.resolve.annotations.argumentValue
+import org.jetbrains.kotlin.resolve.constants.StringValue
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
+import org.jetbrains.kotlin.utils.addToStdlib.safeAs
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -301,7 +303,7 @@ class KotlinLanguageInjector(
         val parameterDescriptor = functionDescriptor.valueParameters.getOrNull(argumentIndex) ?: return null
         val injectAnnotation = parameterDescriptor.annotations.findAnnotation(FqName(AnnotationUtil.LANGUAGE)) ?: return null
 
-        val languageId = injectAnnotation.argumentValue("value") as? String ?: return null
+        val languageId = injectAnnotation.argumentValue("value")?.safeAs<StringValue>()?.value ?: return null
         return InjectionInfo(languageId, null, null)
     }
 
