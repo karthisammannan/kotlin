@@ -84,9 +84,11 @@ enum class HintType(desc: String, enabled: Boolean) {
         override fun isApplicable(elem: PsiElement): Boolean = elem is KtCallElement
     },
 
+
     LAMBDA_RETURN_EXPRESSION("Show lambda return expression hints", true) {
         override fun isApplicable(elem: PsiElement) =
-            elem is KtExpression && elem !is KtLambdaExpression && elem !is KtFunctionLiteral
+            elem is KtExpression && elem !is KtLambdaExpression && elem !is KtFunctionLiteral &&
+                    !elem.isNameReferenceInCall()
 
         override fun provideHints(elem: PsiElement): List<InlayInfo> {
             (elem as? KtExpression)?.let {
@@ -104,6 +106,14 @@ enum class HintType(desc: String, enabled: Boolean) {
                 return provideLambdaImplicitHints(elem)
             }
             return emptyList()
+        }
+    },
+    SUSPENDING_CALL("Show hints for suspending calls", false) {
+        override fun isApplicable(elem: PsiElement) = elem.isNameReferenceInCall()
+
+        override fun provideHints(elem: PsiElement): List<InlayInfo> {
+            val callExpression = elem.parent as? KtCallExpression ?: return emptyList()
+            return provideSuspendingCallHint(callExpression)?.let { listOf(it) } ?: emptyList()
         }
     };
 
@@ -176,3 +186,5 @@ class KotlinInlayParameterHintsProvider : InlayParameterHintsProvider {
     }
 }
 
+private fun PsiElement.isNameReferenceInCall() =
+    this is KtNameReferenceExpression && parent is KtCallExpression
