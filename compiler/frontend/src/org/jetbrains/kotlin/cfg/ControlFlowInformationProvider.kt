@@ -1,17 +1,6 @@
 /*
- * Copyright 2010-2017 JetBrains s.r.o.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2000-2018 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license
+ * that can be found in the license/LICENSE.txt file.
  */
 
 package org.jetbrains.kotlin.cfg
@@ -1073,47 +1062,6 @@ class ControlFlowInformationProvider private constructor(
             return false
         }
 
-        private fun collectResultingExpressionsOfConditionalExpression(expression: KtExpression): List<KtExpression> {
-            val leafBranches = ArrayList<KtExpression>()
-            collectResultingExpressionsOfConditionalExpressionRec(expression, leafBranches)
-            return leafBranches
-        }
-
-        private fun collectResultingExpressionsOfConditionalExpressionRec(
-                expression: KtExpression?,
-                resultingExpressions: MutableList<KtExpression>
-        ) {
-            when (expression) {
-                is KtIfExpression -> {
-                    collectResultingExpressionsOfConditionalExpressionRec(expression.then, resultingExpressions)
-                    collectResultingExpressionsOfConditionalExpressionRec(expression.`else`, resultingExpressions)
-                }
-                is KtWhenExpression -> for (whenEntry in expression.entries) {
-                    collectResultingExpressionsOfConditionalExpressionRec(whenEntry.expression, resultingExpressions)
-                }
-                is Any -> {
-                    val resultingExpression = getResultingExpression(expression)
-                    if (resultingExpression is KtIfExpression || resultingExpression is KtWhenExpression) {
-                        collectResultingExpressionsOfConditionalExpressionRec(resultingExpression, resultingExpressions)
-                    }
-                    else {
-                        resultingExpressions.add(resultingExpression)
-                    }
-                }
-            }
-        }
-
-        private fun getResultingExpression(expression: KtExpression): KtExpression {
-            var finger = expression
-            while (true) {
-                var deparenthesized = KtPsiUtil.deparenthesize(finger)
-                deparenthesized = KtPsiUtil.getExpressionOrLastStatementInBlock(deparenthesized)
-                if (deparenthesized == null || deparenthesized === finger) break
-                finger = deparenthesized
-            }
-            return finger
-        }
-
         private fun combineKinds(kind: TailRecursionKind, existingKind: TailRecursionKind?): TailRecursionKind {
             return if (existingKind == null || existingKind == kind) {
                 kind
@@ -1136,3 +1084,45 @@ class ControlFlowInformationProvider private constructor(
                 || diagnosticFactory === UNUSED_CHANGED_VALUE
     }
 }
+
+fun collectResultingExpressionsOfConditionalExpression(expression: KtExpression): List<KtExpression> {
+    val leafBranches = ArrayList<KtExpression>()
+    collectResultingExpressionsOfConditionalExpressionRec(expression, leafBranches)
+    return leafBranches
+}
+
+private fun collectResultingExpressionsOfConditionalExpressionRec(
+    expression: KtExpression?,
+    resultingExpressions: MutableList<KtExpression>
+) {
+    when (expression) {
+        is KtIfExpression -> {
+            collectResultingExpressionsOfConditionalExpressionRec(expression.then, resultingExpressions)
+            collectResultingExpressionsOfConditionalExpressionRec(expression.`else`, resultingExpressions)
+        }
+        is KtWhenExpression -> for (whenEntry in expression.entries) {
+            collectResultingExpressionsOfConditionalExpressionRec(whenEntry.expression, resultingExpressions)
+        }
+        is Any -> {
+            val resultingExpression = getResultingExpression(expression)
+            if (resultingExpression is KtIfExpression || resultingExpression is KtWhenExpression) {
+                collectResultingExpressionsOfConditionalExpressionRec(resultingExpression, resultingExpressions)
+            }
+            else {
+                resultingExpressions.add(resultingExpression)
+            }
+        }
+    }
+}
+
+private fun getResultingExpression(expression: KtExpression): KtExpression {
+    var finger = expression
+    while (true) {
+        var deparenthesized = KtPsiUtil.deparenthesize(finger)
+        deparenthesized = KtPsiUtil.getExpressionOrLastStatementInBlock(deparenthesized)
+        if (deparenthesized == null || deparenthesized === finger) break
+        finger = deparenthesized
+    }
+    return finger
+}
+
