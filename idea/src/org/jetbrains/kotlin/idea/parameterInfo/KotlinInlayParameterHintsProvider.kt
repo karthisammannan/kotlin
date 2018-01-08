@@ -20,7 +20,6 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.endOffset
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
-import org.jetbrains.kotlin.resolve.calls.model.DefaultValueArgument
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameOrNull
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
@@ -170,16 +169,12 @@ class KotlinInlayParameterHintsProvider : InlayParameterHintsProvider {
         val resolvedCall = elem.getResolvedCall(ctx)
         val resolvedCallee = resolvedCall?.candidateDescriptor
         if (resolvedCallee is FunctionDescriptor) {
+            val paramNames =
+                resolvedCallee.valueParameters.map { it.name }.filter { !it.isSpecial }.map(Name::asString)
             val fqName = if (resolvedCallee is ConstructorDescriptor)
                 resolvedCallee.containingDeclaration.fqNameSafe.asString()
             else
                 (resolvedCallee.fqNameOrNull()?.asString() ?: return null)
-            val paramNames = resolvedCall.valueArguments
-                .mapNotNull { (valueParameterDescriptor, resolvedValueArgument) ->
-                    if (resolvedValueArgument !is DefaultValueArgument) valueParameterDescriptor.name else null
-                }
-                .filter { !it.isSpecial }
-                .map(Name::asString)
             return HintInfo.MethodInfo(fqName, paramNames)
         }
         return null
